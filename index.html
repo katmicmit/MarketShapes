@@ -34,7 +34,10 @@ header{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(-
 .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 h1{font-family:var(--display);font-weight:500;font-size:clamp(2.2rem,6vw,3.4rem);line-height:1.05;margin:0;text-wrap:balance}
 .lede{font-size:1.1rem;color:var(--muted);max-width:62ch;margin:0}
-.pull{margin:0;padding-block:6px;padding-left:20px;border-left:3px solid var(--accent);display:flex;flex-direction:column;gap:8px}
+.pull{margin:0;padding-block:6px;padding-left:20px;border-left:3px solid var(--accent);display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:8.5rem}
+.pull p,.pull cite{transition:opacity .6s ease}
+.pull.fading p,.pull.fading cite{opacity:0}
+@media (prefers-reduced-motion:reduce){.pull p,.pull cite{transition:none}}
 .pull p{margin:0;font-family:var(--display);font-size:clamp(1.3rem,3.4vw,1.6rem);line-height:1.35;color:var(--fg);max-width:40ch;text-wrap:balance}
 .pull cite{font-style:normal;font-size:.85rem;color:var(--muted)}
 .intro{display:flex;flex-direction:column;gap:12px}
@@ -46,12 +49,21 @@ h2{font-family:var(--display);font-weight:500;font-size:1.6rem;line-height:1.2;m
 h3{font-size:.9rem;font-weight:500;color:var(--fg);margin:12px 0 0}
 .bar{display:flex;height:30px;border-radius:5px;overflow:hidden;gap:2px;background:var(--track)}
 .bar i{display:block;height:100%}
+.bar{cursor:pointer}
+.chart{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.chart .bar{align-self:stretch}
+.pie{width:clamp(150px,45vw,210px);max-width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;box-shadow:0 0 0 1px var(--rule)}
+.vt{font-family:var(--mono);font-size:.75rem;color:var(--accent);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:3px 9px;cursor:pointer}
+.vt:hover{border-color:var(--accent)}
+.vt:focus-visible,.bar:focus-visible,.pie:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .leg{display:flex;flex-direction:column;gap:6px;font-size:.92rem;color:var(--muted);margin:2px 0 0;padding:0;list-style:none}
 .leg.row{flex-direction:row;flex-wrap:wrap;gap:6px 18px}
 .leg li{display:flex;align-items:baseline;gap:8px}
 .sw{width:10px;height:10px;border-radius:2px;flex:none;transform:translateY(1px)}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);font-size:.88rem}
 .note{font-size:.82rem;color:var(--faint);margin:2px 0 0;max-width:68ch}
+.more{align-self:flex-start;font-size:.9rem;font-weight:500;color:var(--accent);text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
+.more:hover{border-bottom-width:2px}
 .zoom{font-family:var(--mono);font-size:.75rem;color:var(--faint);text-align:right;margin:2px 0}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .card{background:var(--surface);border:1px solid var(--rule);border-top:3px solid var(--c);padding:16px;border-radius:0 0 6px 6px;display:flex;flex-direction:column;gap:2px}
@@ -87,35 +99,61 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <p class="sub">On a typical day, only about 1.7% of the market's value changes hands. That thin slice set the price for everything else. Source: <a href="https://fred.stlouisfed.org/series/SP500">S&amp;P 500, FRED, St. Louis Fed</a>.</p>
 </section>
 
-<blockquote class="pull">
-  <p>“In the short run, the market is a voting machine but in the long run it is a weighing machine.”</p>
-  <cite>Benjamin Graham, as quoted by Warren Buffett in his letters to Berkshire Hathaway shareholders</cite>
+<blockquote class="pull" id="pull" aria-live="polite">
+  <p id="pull-text">“In the short run, the market is a voting machine but in the long run it is a weighing machine.”</p>
+  <cite id="pull-cite">Benjamin Graham, as quoted by Warren Buffett in his letters to Berkshire Hathaway shareholders</cite>
 </blockquote>
+<script>
+(function(){
+  var q=[
+    ["In the short run, the market is a voting machine but in the long run it is a weighing machine.","Benjamin Graham, as quoted by Warren Buffett in his letters to Berkshire Hathaway shareholders"],
+    ["The poet’s pen / Turns them to shapes, and gives to airy nothing / A local habitation and a name.","William Shakespeare, A Midsummer Night’s Dream"],
+    ["Price is what you pay; value is what you get.","Benjamin Graham’s lesson, as told by Warren Buffett, 2008 letter to shareholders"],
+    ["To see a World in a Grain of Sand / And a Heaven in a Wild Flower","William Blake, “Auguries of Innocence”"],
+    ["The cost of a thing is the amount of what I will call life which is required to be exchanged for it, immediately or in the long run.","Henry David Thoreau, Walden (1854)"],
+    ["A man who knows the price of everything and the value of nothing.","Oscar Wilde, Lady Windermere’s Fan, defining a cynic"],
+    ["We see into the life of things.","William Wordsworth, “Tintern Abbey”"]
+  ];
+  var t=document.getElementById("pull-text"),c=document.getElementById("pull-cite"),b=document.getElementById("pull");
+  if(!t||!c||!b)return;
+  var i=0,calm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,paused=false;
+  b.addEventListener("mouseenter",function(){paused=true});
+  b.addEventListener("mouseleave",function(){paused=false});
+  function show(n){t.textContent="“"+q[n][0]+"”";c.textContent=q[n][1];}
+  setInterval(function(){
+    if(paused||document.hidden)return;
+    i=(i+1)%q.length;
+    if(calm){show(i);return;}
+    b.classList.add("fading");
+    setTimeout(function(){show(i);b.classList.remove("fading");},600);
+  },12000);
+})();
+</script>
 
 <section class="fig" aria-labelledby="f1">
-  <h2 id="f1">Share of all US stock, by household wealth</h2>
-  <p class="q">Line up every US household from richest to poorest. How much of the stock market does each group own?</p>
-  <div class="bar" role="img" aria-label="Wealthiest 1% own about 50%, next 9% about 37%, remaining 90% about 13%"><i style="width:50%;background:var(--s1)"></i><i style="width:37%;background:var(--s2)"></i><i style="width:13%;background:var(--s3)"></i></div>
+  <h2 id="f1">Share of US household-owned stock, by household wealth</h2>
+  <p class="q">Line up every US household from richest to poorest. How much of the stock households own does each group hold?</p>
+  <div class="bar" role="img" aria-label="Wealthiest 1% own about 51%, next 9% about 37%, remaining 90% about 12%"><i style="width:50.9%;background:var(--s1)"></i><i style="width:37.2%;background:var(--s2)"></i><i style="width:11.9%;background:var(--s3)"></i></div>
   <ul class="leg">
-    <li><span class="sw" style="background:var(--s1)"></span><span>The wealthiest 1% of households own about <span class="num">50%</span> of all stock</span></li>
+    <li><span class="sw" style="background:var(--s1)"></span><span>The wealthiest 1% of households own about <span class="num">51%</span> of household-held stock</span></li>
     <li><span class="sw" style="background:var(--s2)"></span><span>The next wealthiest 9% of households own about <span class="num">37%</span></span></li>
-    <li><span class="sw" style="background:var(--s3)"></span><span>All other households (the least wealthy 90%) own about <span class="num">13%</span> combined</span></li>
+    <li><span class="sw" style="background:var(--s3)"></span><span>All other households (the least wealthy 90%) own about <span class="num">12%</span> combined</span></li>
   </ul>
-  <p class="note">Households ranked by net worth, not yearly income. Approximate, based on Federal Reserve distributional data. In plain terms: the bottom nine out of ten households together own about 13 cents of every dollar of stock.</p>
+  <p class="note">Federal Reserve Distributional Financial Accounts, Q2 2026. Households ranked by net worth. Counts stocks and mutual funds held directly and in IRAs, but not inside 401(k)s. In plain terms: the bottom nine out of ten households together own about 12 cents of every dollar of household stock, even though 58% of families own at least some.</p>
+  <a class="more" href="why-top-1-percent.html">Why is it so concentrated? Read the explainer →</a>
 </section>
 
 <section class="fig" aria-labelledby="f2">
-  <h2 id="f2">Share of all US stock, by type of account</h2>
-  <p class="q">The same market, sliced by where the stock is held rather than by who is wealthy.</p>
-  <div class="bar" role="img" aria-label="401(k)s about 10%, IRAs and pensions about 27%, taxable accounts about 24%, foreign investors about 25%, other about 14%"><i style="width:10%;background:var(--s6)"></i><i style="width:27%;background:var(--s7)"></i><i style="width:24%;background:var(--s4)"></i><i style="width:25%;background:var(--s5)"></i><i style="width:14%;background:var(--rest)"></i></div>
+  <h2 id="f2">Share of all publicly traded US stock, by type of owner</h2>
+  <p class="q">The whole market, including the owners households leave out: foreign investors now hold about a third.</p>
+  <div class="bar" role="img" aria-label="Foreign investors about 34%, retirement accounts about 34%, taxable accounts about 28%, other about 4%"><i style="width:34%;background:var(--s5)"></i><i style="width:34%;background:var(--s7)"></i><i style="width:28%;background:var(--s4)"></i><i style="width:4%;background:var(--rest)"></i></div>
   <ul class="leg row">
-    <li><span class="sw" style="background:var(--s6)"></span><span>401(k)s <span class="num">~10%</span></span></li>
-    <li><span class="sw" style="background:var(--s7)"></span><span>IRAs and pensions <span class="num">~27%</span></span></li>
-    <li><span class="sw" style="background:var(--s4)"></span><span>Taxable accounts <span class="num">~24%</span></span></li>
-    <li><span class="sw" style="background:var(--s5)"></span><span>Foreign investors <span class="num">~25%</span></span></li>
-    <li><span class="sw" style="background:var(--rest)"></span><span>Insurers, nonprofits, other <span class="num">~14%</span></span></li>
+    <li><span class="sw" style="background:var(--s5)"></span><span>Foreign investors <span class="num">~34%</span></span></li>
+    <li><span class="sw" style="background:var(--s7)"></span><span>Retirement accounts: 401(k)s, IRAs, pensions <span class="num">~34%</span></span></li>
+    <li><span class="sw" style="background:var(--s4)"></span><span>Taxable brokerage and fund accounts <span class="num">~28%</span></span></li>
+    <li><span class="sw" style="background:var(--rest)"></span><span>Nonprofits, insurers, other <span class="num">~4%</span></span></li>
   </ul>
-  <p class="note">Retirement accounts total about 37% (Tax Policy Center, 2015 data). The 401(k) split is a rough estimate. These accounts belong mostly to the wealthiest 10% of households, so this bar overlaps the one above rather than adding to it.</p>
+  <p class="note">Tax Policy Center (Rosenthal and Mucciolo), 2022 data. Including private companies, foreign investors hold about 42% of all US stock. Foreign ownership was about 25% in 2015.The retirement and taxable accounts belong mostly to the wealthiest 10% of households.</p>
 </section>
 
 <section class="fig" aria-labelledby="f3">
@@ -188,8 +226,9 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 <footer>
   <p>All figures are approximate and drawn from different years and methods, so bars from different sections do not add together.</p>
   <ul>
+    <li><a href="https://www.federalreserve.gov/releases/efa/efa-distributional-financial-accounts.htm">Federal Reserve: Distributional Financial Accounts</a></li>
     <li><a href="https://www.cboe.com/insights/posts/2025-u-s-equities-year-in-review">Cboe: 2025 U.S. Equities Year in Review</a></li>
-    <li><a href="https://www.businessinsider.in/heres-who-actually-owns-the-stock-market/articleshow/52437605.cms">Business Insider: Here's who actually owns the stock market</a></li>
+    <li><a href="https://www.taxpolicycenter.org/taxvox/whos-left-tax-grappling-dwindling-shareholder-tax-base">Tax Policy Center: Who's left to tax? Grappling with a dwindling shareholder tax base</a></li>
     <li><a href="https://idc.org/node/827511">ICI: 401(k) plan assets</a></li>
     <li><a href="https://www.everycrsreport.com/reports/R44443.html">CRS: High Frequency Trading overview</a></li>
     <li><a href="https://thediversifiedfinsanalyst.substack.com/p/weekly-recap-for-week-ended-april">Weekly recap, week ended April 4, 2025</a></li>
@@ -198,6 +237,44 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   </ul>
 </footer>
 </div>
+<script>
+(function(){
+  document.querySelectorAll(".bar").forEach(function(bar){
+    var segs=[].slice.call(bar.querySelectorAll("i"));
+    var stops=[],at=0;
+    segs.forEach(function(s){
+      var w=parseFloat(s.style.width)||0;
+      var col=s.style.background||s.style.backgroundColor;
+      stops.push(col+" "+at.toFixed(2)+"% "+(at+w).toFixed(2)+"%");
+      at+=w;
+    });
+    var wrap=document.createElement("div");wrap.className="chart";
+    bar.parentNode.insertBefore(wrap,bar);
+    var pie=document.createElement("div");
+    pie.className="pie";pie.hidden=true;
+    pie.style.background="conic-gradient("+stops.join(",")+")";
+    pie.setAttribute("role","img");
+    pie.setAttribute("aria-label",bar.getAttribute("aria-label")||"Pie chart");
+    var btn=document.createElement("button");
+    btn.type="button";btn.className="vt";btn.textContent="◔ Show as pie";
+    btn.setAttribute("aria-pressed","false");
+    wrap.appendChild(bar);wrap.appendChild(pie);wrap.appendChild(btn);
+    function toggle(){
+      var toPie=pie.hidden;
+      pie.hidden=!toPie;bar.hidden=toPie;
+      btn.textContent=toPie?"▬ Show as bar":"◔ Show as pie";
+      btn.setAttribute("aria-pressed",String(toPie));
+    }
+    btn.addEventListener("click",toggle);
+    [bar,pie].forEach(function(el){
+      el.tabIndex=0;
+      el.title="Click to switch view";
+      el.addEventListener("click",toggle);
+      el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}});
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
