@@ -2,282 +2,271 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Charts of who owns US stocks, who drives consumer spending, and how little of the market trades each day.">
-<style>html,body{margin:0}</style>
-<title>Who Owns the Market</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<meta name="description" content="MarketShapes: visual explainers of how markets add up.">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MarketShapes</title>
+<script>
+/* theme hook: the canvas loads the tile with ?theme=light|dark (or stamps data-theme on <html>).
+   Runs before first paint — no dark flash. Standalone default stays dark. */
+(function(){var t=new URLSearchParams(location.search).get('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();
+</script>
 <style>
-/* Layout: single reading column; each figure is a labeled ledger row with a full-width bar, legend, and source note */
-:root{
-  --bg:#f5f6f4; --surface:#ffffff; --fg:#17201f; --muted:#5b6563; --faint:#8a9391; --rule:#dfe3e0; --track:#e9ecea;
-  --accent:#1f5f5b;
-  --s1:#2a78d6; --s2:#e0632f; --s3:#18a070; --s4:#d99a00; --s5:#d55c8f; --s6:#5f4fd0; --s7:#8f85e6; --hot:#d8403f; --rest:#b9bfbc;
-  --display:"Newsreader",Georgia,"Times New Roman",serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#121615; --surface:#1a201f; --fg:#e8ecea; --muted:#a6b0ad; --faint:#7d8784; --rule:#2c3432; --track:#252c2a;
-  --accent:#6fc3bb; --s1:#4b93ea; --s2:#ec7a4a; --s3:#2fbd88; --s4:#e6ac1f; --s5:#e47aa6; --s6:#8a7df0; --s7:#a99ff2; --hot:#ec5f5e; --rest:#4a5452;
-  color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#121615; --surface:#1a201f; --fg:#e8ecea; --muted:#a6b0ad; --faint:#7d8784; --rule:#2c3432; --track:#252c2a;
-  --accent:#6fc3bb; --s1:#4b93ea; --s2:#ec7a4a; --s3:#2fbd88; --s4:#e6ac1f; --s5:#e47aa6; --s6:#8a7df0; --s7:#a99ff2; --hot:#ec5f5e; --rest:#4a5452;
-  color-scheme:dark}
-*{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6;padding-inline:16px;padding-block:0}
-.wrap{max-width:760px;margin:0 auto;padding-block:48px 64px;display:flex;flex-direction:column;gap:40px}
-header{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--rule);padding-bottom:28px}
-.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-h1{font-family:var(--display);font-weight:500;font-size:clamp(2.2rem,6vw,3.4rem);line-height:1.05;margin:0;text-wrap:balance}
-.lede{font-size:1.1rem;color:var(--muted);max-width:62ch;margin:0}
-.pull{margin:0;padding-block:6px;padding-left:20px;border-left:3px solid var(--accent);display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:8.5rem}
-.pull p,.pull cite{transition:opacity .6s ease}
-.pull.fading p,.pull.fading cite{opacity:0}
-@media (prefers-reduced-motion:reduce){.pull p,.pull cite{transition:none}}
-.pull p{margin:0;font-family:var(--display);font-size:clamp(1.3rem,3.4vw,1.6rem);line-height:1.35;color:var(--fg);max-width:40ch;text-wrap:balance}
-.pull cite{font-style:normal;font-size:.85rem;color:var(--muted)}
-.intro{display:flex;flex-direction:column;gap:12px}
-.intro p{margin:0;max-width:65ch}
-.fig{display:flex;flex-direction:column;gap:10px}
-.fig + .fig{border-top:1px solid var(--rule);padding-top:36px}
-h2{font-family:var(--display);font-weight:500;font-size:1.6rem;line-height:1.2;margin:0;text-wrap:balance}
-.q{font-size:.95rem;color:var(--muted);margin:0;max-width:65ch}
-h3{font-size:.9rem;font-weight:500;color:var(--fg);margin:12px 0 0}
-.bar{display:flex;height:30px;border-radius:5px;overflow:hidden;gap:2px;background:var(--track)}
-.bar i{display:block;height:100%}
-.bar{cursor:pointer}
-.chart{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
-.chart .bar{align-self:stretch}
-.pie{width:clamp(150px,45vw,210px);max-width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;box-shadow:0 0 0 1px var(--rule)}
-.vt{font-family:var(--mono);font-size:.75rem;color:var(--accent);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:3px 9px;cursor:pointer}
-.vt:hover{border-color:var(--accent)}
-.vt:focus-visible,.bar:focus-visible,.pie:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.leg{display:flex;flex-direction:column;gap:6px;font-size:.92rem;color:var(--muted);margin:2px 0 0;padding:0;list-style:none}
-.leg.row{flex-direction:row;flex-wrap:wrap;gap:6px 18px}
-.leg li{display:flex;align-items:baseline;gap:8px}
-.sw{width:10px;height:10px;border-radius:2px;flex:none;transform:translateY(1px)}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);font-size:.88rem}
-.note{font-size:.82rem;color:var(--faint);margin:2px 0 0;max-width:68ch}
-.more{align-self:flex-start;font-size:.9rem;font-weight:500;color:var(--accent);text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
-.more:hover{border-bottom-width:2px}
-.zoom{font-family:var(--mono);font-size:.75rem;color:var(--faint);text-align:right;margin:2px 0}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.card{background:var(--surface);border:1px solid var(--rule);border-top:3px solid var(--c);padding:16px;border-radius:0 0 6px 6px;display:flex;flex-direction:column;gap:2px}
-.card p{margin:0}
-.card .t{font-size:.85rem;color:var(--muted)}
-.card .v{font-family:var(--display);font-size:1.7rem;font-weight:500;line-height:1.2}
-.card .s{font-size:.8rem;color:var(--faint)}
-.take{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;display:flex;flex-direction:column;gap:8px}
-.take h2{font-size:1.3rem}
-.take p{margin:0;color:var(--muted);max-width:65ch}
-.close{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding-block:18px;display:flex;flex-direction:column;gap:6px}
-.close .kicker{color:var(--muted)}
-.close .line{margin:0;font-family:var(--display);font-size:clamp(1.25rem,3.2vw,1.5rem);line-height:1.35;text-wrap:balance}
-.close .up{color:var(--s3);font-family:var(--mono);font-size:.85em;white-space:nowrap}
-.close .sub{margin:0;font-size:.92rem;color:var(--muted);max-width:65ch}
-footer{border-top:1px solid var(--rule);padding-top:20px;font-size:.82rem;color:var(--faint);display:flex;flex-direction:column;gap:8px}
-footer ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
-footer a{color:var(--accent)}
-a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  :root{--ch08-bg:#0a0d12;--ch08-cap:#fff;--ch08-cap-o:.42;--ch08-acc:#5ad1a0;--ch08-up:#5ad1a0;--ch08-down:#e06a8b;--ch08-total:#d7e0e6;--ch08-grid:rgba(215,224,230,0.10);--ch08-ax:rgba(215,224,230,0.22);--ch08-tick:rgba(255,255,255,0.85);--ch08-ink:215,224,230} /* dark = defaults; JS re-reads these in syncTheme() */
+  :root[data-theme="light"]{--ch08-bg:#f1f4f8;--ch08-cap:#1b2130;--ch08-cap-o:.5;--ch08-acc:#237e59;--ch08-up:#237e59;--ch08-down:#cf2b59;--ch08-total:#4a6478;--ch08-grid:rgba(40,60,80,0.14);--ch08-ax:rgba(40,60,80,0.32);--ch08-tick:rgba(20,30,40,0.40);--ch08-ink:56,76,92} /* light re-theme */
+  html,body{margin:0;height:100%;background:var(--ch08-bg);overflow:hidden}
+  #ch08-stage{position:fixed;inset:0;display:block}
+  #ch08-c{position:absolute;inset:0;width:100%;height:100%}
+  body{cursor:pointer;transition:opacity .45s ease}
+  body.leaving{opacity:0}
+  #ms-enter{position:fixed;inset:0;z-index:2;outline:none}
+  #ms-enter:focus-visible{box-shadow:inset 0 0 0 3px var(--ch08-acc)}
+  .ms-title{position:fixed;left:0;right:0;top:7vh;text-align:center;pointer-events:none;user-select:none;color:var(--ch08-cap);font:600 clamp(30px,6vw,64px)/1.1 Georgia,"Times New Roman",serif}
+  .ms-title span{color:var(--ch08-acc)}
+  .ms-sub{display:block;margin-top:.7em;font:500 clamp(11px,1.5vw,14px)/1.4 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ch08-cap);opacity:.55}
+  @keyframes ms-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
+  .cap{position:fixed;left:0;right:0;bottom:16px;text-align:center;animation:ms-pulse 2.4s ease-in-out infinite;font:600 11px/1 ui-monospace,Menlo,monospace;color:var(--ch08-cap);letter-spacing:.14em;text-transform:uppercase;user-select:none}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important}}
 </style>
+<script type="application/json" id="forever-agent-meta">
+{
+ "file": "infinite/charts-flow/08-waterfall.html",
+ "title": "Waterfall",
+ "description": "Waterfall chart with staggered bar reveals and dashed connectors. Green bars for gains, pink for losses, with a scan dot tracing the running total.",
+ "useWhen": "Finance dashboards, earnings breakdowns, P&amp;L summaries, or any demo showing incremental contribution to a total.",
+ "avoidWhen": "Contexts needing user interaction with chart data, or when more than ~8 bars are needed — bars shrink below readability on narrow viewports.",
+ "agentPrompt": "Change the STEP data to a new P&amp;L scenario: update label/value pairs in the STEP array, set UP to '#60a5fa' for blue gains, and slow the stride to 0.55. Theme: dark tokens live in :root, the light variant in :root[data-theme=\"light\"]; ?theme=light or a {type:'forever:theme'} postMessage switches at runtime.",
+ "editableAreas": [
+  "bar data (STEP array — labels, values, types)",
+  "gain/loss colors (UP, DOWN variables)",
+  "animation stride and perBar timing",
+  "scan dot color (ACC variable)",
+  "grid and axis opacity (GRID, AX)",
+  "theme tokens (:root dark defaults + [data-theme=light] overrides)"
+ ],
+ "preserveElements": [
+  "IIFE wrapper",
+  "prefers-reduced-motion guard (reduce variable)",
+  "visibilitychange stop/start",
+  "DPR-aware canvas sizing",
+  "theme hook (?theme= bootstrap + forever:theme message listener + theme tokens)"
+ ],
+ "knownLimitations": [
+  "Bar labels can overlap on narrow screens with many steps — no responsive label truncation",
+  "Total bar value is implicitly computed from cumulative sum; hardcoding a different total requires updating size() logic",
+  "No tooltip or hover interaction — values appear only as inline chips above bars"
+ ],
+ "tier": "curated",
+ "labels": [
+  "agent-ready",
+  "easy-to-modify",
+  "mobile-ready",
+  "accessible",
+  "copy-paste-safe",
+  "minimal-deps",
+  "light-ready"
+ ],
+ "tags": [
+  "waterfall",
+  "chart",
+  "finance",
+  "canvas",
+  "data-viz",
+  "staggered",
+  "business"
+ ]
+}
+</script>
 </head>
 <body>
-
-<div class="wrap">
-<header>
-  <span class="kicker">MarketShapes · US stocks</span>
-  <h1>Who owns the market, and who moves it</h1>
-</header>
-
-<section class="close" aria-label="Last market close">
-  <span class="kicker">Last close · Friday, October 9, 2026</span>
-  <p class="line">The S&amp;P 500 closed at <span class="num">7,811.54</span>, <span class="up">▲ 0.59% (+46.18)</span></p>
-  <p class="sub">On a typical day, only about 1.7% of the market's value changes hands. That thin slice set the price for everything else. Source: <a href="https://fred.stlouisfed.org/series/SP500">S&amp;P 500, FRED, St. Louis Fed</a>.</p>
-</section>
-
-<blockquote class="pull" id="pull" aria-live="polite">
-  <p id="pull-text">“In the short run, the market is a voting machine but in the long run it is a weighing machine.”</p>
-  <cite id="pull-cite">Benjamin Graham, as quoted by Warren Buffett in his letters to Berkshire Hathaway shareholders</cite>
-</blockquote>
-<script>
-(function(){
-  var q=[
-    ["In the short run, the market is a voting machine but in the long run it is a weighing machine.","Benjamin Graham, as quoted by Warren Buffett in his letters to Berkshire Hathaway shareholders"],
-    ["The poet’s pen / Turns them to shapes, and gives to airy nothing / A local habitation and a name.","William Shakespeare, A Midsummer Night’s Dream"],
-    ["Price is what you pay; value is what you get.","Benjamin Graham’s lesson, as told by Warren Buffett, 2008 letter to shareholders"],
-    ["To see a World in a Grain of Sand / And a Heaven in a Wild Flower","William Blake, “Auguries of Innocence”"],
-    ["The cost of a thing is the amount of what I will call life which is required to be exchanged for it, immediately or in the long run.","Henry David Thoreau, Walden (1854)"],
-    ["A man who knows the price of everything and the value of nothing.","Oscar Wilde, Lady Windermere’s Fan, defining a cynic"],
-    ["We see into the life of things.","William Wordsworth, “Tintern Abbey”"]
-  ];
-  var t=document.getElementById("pull-text"),c=document.getElementById("pull-cite"),b=document.getElementById("pull");
-  if(!t||!c||!b)return;
-  var i=0,calm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,paused=false;
-  b.addEventListener("mouseenter",function(){paused=true});
-  b.addEventListener("mouseleave",function(){paused=false});
-  function show(n){t.textContent="“"+q[n][0]+"”";c.textContent=q[n][1];}
-  setInterval(function(){
-    if(paused||document.hidden)return;
-    i=(i+1)%q.length;
-    if(calm){show(i);return;}
-    b.classList.add("fading");
-    setTimeout(function(){show(i);b.classList.remove("fading");},600);
-  },12000);
-})();
-</script>
-
-<section class="fig" aria-labelledby="f1">
-  <h2 id="f1">Who owns the US stock market</h2>
-  <p class="q">Share of the total value of publicly traded US stock, with US households lined up from richest to poorest.</p>
-  <div class="bar" role="img" aria-label="Foreign investors own about 34%, wealthiest 1% of US households about 32%, next 9% about 23%, middle 40% about 7%, other institutions about 4%, remaining US households about 0.4%"><i style="width:34%;background:var(--s5)"></i><i style="width:31.6%;background:var(--s1)"></i><i style="width:23%;background:var(--s2)"></i><i style="width:7%;background:var(--s3)"></i><i style="width:4%;background:var(--rest)"></i><i style="width:0.4%;min-width:3px;background:var(--s4)"></i></div>
-  <ul class="leg">
-    <li><span class="sw" style="background:var(--s5)"></span><span>Foreign investors, based outside the US, own about <span class="num">34%</span></span></li>
-    <li><span class="sw" style="background:var(--s1)"></span><span>The wealthiest 1% of US households own about <span class="num">32%</span></span></li>
-    <li><span class="sw" style="background:var(--s2)"></span><span>The next wealthiest 9% own about <span class="num">23%</span></span></li>
-    <li><span class="sw" style="background:var(--s3)"></span><span>The middle 40% own about <span class="num">7%</span></span></li>
-    <li><span class="sw" style="background:var(--rest)"></span><span>Nonprofits, endowments and insurers own about <span class="num">4%</span></span></li>
-    <li><span class="sw" style="background:var(--s4)"></span><span>The remaining US households, the least wealthy half, own about <span class="num">0.4%</span></span></li>
-  </ul>
-  <p class="note">Foreign and institutional shares: Tax Policy Center, 2022 data. Household groups apply the Federal Reserve's Q2 2026 wealth split to the roughly 62% of publicly traded stock that US households own. Two sources are combined, so treat the shares as approximate. In plain terms: foreign investors own about as much of the US market as America's wealthiest 1%, while half of US households together own less than half a cent of every dollar, even though 58% of families own at least some stock.</p>
-  <a class="more" href="why-top-1-percent.html">Why is it so concentrated? Read the explainer →</a>
-</section>
-
-<section class="fig" aria-labelledby="f2">
-  <h2 id="f2">Share of all publicly traded US stock, by type of owner</h2>
-  <p class="q">The whole market, including the owners households leave out: foreign investors now hold about a third.</p>
-  <div class="bar" role="img" aria-label="Foreign investors about 34%, retirement accounts about 34%, taxable accounts about 28%, other about 4%"><i style="width:34%;background:var(--s5)"></i><i style="width:34%;background:var(--s7)"></i><i style="width:28%;background:var(--s4)"></i><i style="width:4%;background:var(--rest)"></i></div>
-  <ul class="leg row">
-    <li><span class="sw" style="background:var(--s5)"></span><span>Foreign investors <span class="num">~34%</span></span></li>
-    <li><span class="sw" style="background:var(--s7)"></span><span>Retirement accounts: 401(k)s, IRAs, pensions <span class="num">~34%</span></span></li>
-    <li><span class="sw" style="background:var(--s4)"></span><span>Taxable brokerage and fund accounts <span class="num">~28%</span></span></li>
-    <li><span class="sw" style="background:var(--rest)"></span><span>Nonprofits, insurers, other <span class="num">~4%</span></span></li>
-  </ul>
-  <p class="note">Tax Policy Center (Rosenthal and Mucciolo), 2022 data. Including private companies, foreign investors hold about 42% of all US stock. Foreign ownership was about 25% in 2015.The retirement and taxable accounts belong mostly to the wealthiest 10% of households.</p>
-</section>
-
-<section class="fig" aria-labelledby="f3">
-  <h2 id="f3">Share of all consumer spending, by household income</h2>
-  <p class="q">Who keeps company revenues, and therefore earnings, growing?</p>
-  <div class="bar" role="img" aria-label="Highest-earning 10% do about 50% of spending, the other 90% do about 50%"><i style="width:50%;background:var(--s1)"></i><i style="width:50%;background:var(--s3)"></i></div>
-  <ul class="leg">
-    <li><span class="sw" style="background:var(--s1)"></span><span>The highest-earning 10% of households do about <span class="num">50%</span> of all spending</span></li>
-    <li><span class="sw" style="background:var(--s3)"></span><span>All other households (the lower-earning 90%) do the other <span class="num">50%</span> combined</span></li>
-  </ul>
-  <p class="note">Ranked by yearly income, not net worth (Moody's Analytics, 2025). This feeds a loop: stock gains make wealthy households feel richer, they spend more, earnings rise, and stocks rise again. The loop also runs in reverse.</p>
-</section>
-
-<section class="fig" aria-labelledby="f4">
-  <h2 id="f4">Share of the market's value traded in one day</h2>
-  <p class="q">On any given day, almost all stock sits still. The last trade still reprices every share.</p>
-  <h3>Average day, 2025: about $1.1 trillion traded</h3>
-  <div class="bar" role="img" aria-label="About 1.7% of market value traded on an average day"><i style="width:98.3%;background:var(--rest)"></i><i style="width:1.7%;min-width:6px;background:var(--hot)"></i></div>
-  <h3>Worst day: April 4, 2025. S&amp;P 500 down about 6% on tariff fears, record 26.9 billion shares</h3>
-  <div class="bar" role="img" aria-label="About 3.2% of market value traded on April 4, 2025"><i style="width:96.8%;background:var(--rest)"></i><i style="width:3.2%;background:var(--hot)"></i></div>
-  <h3>Best day: April 9, 2025. S&amp;P 500 up about 9.5% on a tariff pause, record $1.86 trillion traded</h3>
-  <div class="bar" role="img" aria-label="About 3.7% of market value traded on April 9, 2025"><i style="width:96.3%;background:var(--rest)"></i><i style="width:3.7%;background:var(--hot)"></i></div>
-  <ul class="leg row">
-    <li><span class="sw" style="background:var(--rest)"></span><span>Held, untouched</span></li>
-    <li><span class="sw" style="background:var(--hot)"></span><span>Traded that day: <span class="num">~1.7%</span> average, <span class="num">~3.2%</span> worst, <span class="num">~3.7%</span> best</span></li>
-  </ul>
-  <p class="note">Estimates: dollars traded divided by approximate total market value that day. The April 4 dollar figure is estimated from share volume.</p>
-</section>
-
-<section class="fig" aria-labelledby="f5">
-  <h2 id="f5">Who does the trading on an average day</h2>
-  <p class="q">Most trading comes from computers, and they end the day owning almost nothing.</p>
-  <h3>The whole market</h3>
-  <div class="bar" role="img" aria-label="Of the whole market, about 0.9% is traded by high-frequency firms and 0.8% by everyone else on an average day"><i style="width:98.3%;background:var(--rest)"></i><i style="width:.9%;min-width:4px;background:var(--hot)"></i><i style="width:.8%;min-width:4px;background:var(--s4)"></i></div>
-  <p class="zoom">↓ zoomed in on the ~1.7% that trades</p>
-  <div class="cards">
-    <div class="card" style="--c:var(--hot)"><p class="t">High-frequency trading firms</p><p class="v">~0.9% of the market</p><p class="s">About 50–60% of the day's trading</p></div>
-    <div class="card" style="--c:var(--s4)"><p class="t">Everyone else</p><p class="v">~0.8% of the market</p><p class="s">Funds, retail traders, institutions: about 40–50%</p></div>
-  </div>
-  <p class="note">High-frequency trading (HFT) firms such as Citadel Securities and Virtu use algorithms to trade the same shares thousands of times a second. Many retail orders from apps like Robinhood are executed by these firms through payment for order flow.</p>
-</section>
-
-<section class="fig" aria-labelledby="f6">
-  <h2 id="f6">2026: which stocks drive the most dollars traded?</h2>
-  <p class="q">A handful of names take an outsized share of every trading dollar.</p>
-  <h3>Share of all US dollar trading volume, 2026 year to date</h3>
-  <div class="bar" role="img" aria-label="Nvidia 3.0%, Micron 2.8%, Tesla 2.1%, next seven about 8.5%, all other stocks about 84%"><i style="width:3%;background:var(--s1)"></i><i style="width:2.8%;background:var(--s3)"></i><i style="width:2.1%;background:var(--hot)"></i><i style="width:8.5%;background:var(--s6)"></i><i style="width:83.6%;background:var(--rest)"></i></div>
-  <ul class="leg row">
-    <li><span class="sw" style="background:var(--s1)"></span><span>Nvidia <span class="num">3.0%</span></span></li>
-    <li><span class="sw" style="background:var(--s3)"></span><span>Micron <span class="num">2.8%</span></span></li>
-    <li><span class="sw" style="background:var(--hot)"></span><span>Tesla <span class="num">2.1%</span></span></li>
-    <li><span class="sw" style="background:var(--s6)"></span><span>Next 7 most-traded <span class="num">~8.5%</span></span></li>
-    <li><span class="sw" style="background:var(--rest)"></span><span>Roughly 4,000 other stocks <span class="num">~84%</span></span></li>
-  </ul>
-  <p class="note">The top 10 stocks together account for about 16.4% of every dollar traded (Goldman Sachs). Three companies alone take about 8 cents of every trading dollar. Micron trades far more than its size would suggest.</p>
-  <h3>For comparison: the 10 largest companies, as a share of total large-cap market value</h3>
-  <div class="bar" role="img" aria-label="10 largest companies about 39% of large-cap market value"><i style="width:38.9%;background:var(--s1)"></i><i style="width:61.1%;background:var(--rest)"></i></div>
-  <ul class="leg row">
-    <li><span class="sw" style="background:var(--s1)"></span><span>10 largest companies <span class="num">~39%</span></span></li>
-    <li><span class="sw" style="background:var(--rest)"></span><span>The other ~490 large companies <span class="num">~61%</span></span></li>
-  </ul>
-  <p class="note">July 2026: Nvidia, Apple, Alphabet, Microsoft, Amazon, SpaceX, Broadcom, Tesla, Meta, Micron. Up from about 22% in 2010 (ChartRow).</p>
-</section>
-
-<aside class="take">
-  <h2>What it adds up to</h2>
-  <p>A large, sticky base of ownership, mostly the wealthiest households and their retirement accounts, rarely sells. On top of it sits a thin, hyperactive layer that does most of the trading and sets prices at the margin. That is why prices can swing by trillions of dollars in a day while ownership barely changes.</p>
-</aside>
-
-<footer>
-  <p>All figures are approximate and drawn from different years and methods, so bars from different sections do not add together.</p>
-  <ul>
-    <li><a href="https://www.federalreserve.gov/releases/efa/efa-distributional-financial-accounts.htm">Federal Reserve: Distributional Financial Accounts</a></li>
-    <li><a href="https://www.cboe.com/insights/posts/2025-u-s-equities-year-in-review">Cboe: 2025 U.S. Equities Year in Review</a></li>
-    <li><a href="https://www.taxpolicycenter.org/taxvox/whos-left-tax-grappling-dwindling-shareholder-tax-base">Tax Policy Center: Who's left to tax? Grappling with a dwindling shareholder tax base</a></li>
-    <li><a href="https://idc.org/node/827511">ICI: 401(k) plan assets</a></li>
-    <li><a href="https://www.everycrsreport.com/reports/R44443.html">CRS: High Frequency Trading overview</a></li>
-    <li><a href="https://thediversifiedfinsanalyst.substack.com/p/weekly-recap-for-week-ended-april">Weekly recap, week ended April 4, 2025</a></li>
-    <li><a href="https://cryptobriefing.com/nvidia-most-actively-traded-us-stock/">Nvidia becomes most actively traded US stock (Goldman Sachs data)</a></li>
-    <li><a href="https://chartrow.com/visuals/index-concentration">ChartRow: How top-heavy is the stock market?</a></li>
-  </ul>
-</footer>
+<div id="ch08-stage" role="img" aria-label="An animated waterfall chart. Cumulative bars rise and fall from a running baseline, threaded by connector lines, settling on a final total bar.">
+  <canvas id="ch08-c"></canvas>
 </div>
+<div class="ms-title" aria-hidden="true">Market<span>Shapes</span><span class="ms-sub">How markets add up</span></div>
+<div id="ms-enter" role="link" tabindex="0" aria-label="Enter MarketShapes"></div>
+<div class="cap">Click anywhere to enter</div>
 <script>
 (function(){
-  document.querySelectorAll(".bar").forEach(function(bar){
-    var segs=[].slice.call(bar.querySelectorAll("i"));
-    var stops=[],at=0;
-    segs.forEach(function(s){
-      var w=parseFloat(s.style.width)||0;
-      var col=s.style.background||s.style.backgroundColor;
-      stops.push(col+" "+at.toFixed(2)+"% "+(at+w).toFixed(2)+"%");
-      at+=w;
-    });
-    var wrap=document.createElement("div");wrap.className="chart";
-    bar.parentNode.insertBefore(wrap,bar);
-    var pie=document.createElement("div");
-    pie.className="pie";pie.hidden=true;
-    pie.style.background="conic-gradient("+stops.join(",")+")";
-    pie.setAttribute("role","img");
-    pie.setAttribute("aria-label",bar.getAttribute("aria-label")||"Pie chart");
-    var btn=document.createElement("button");
-    btn.type="button";btn.className="vt";btn.textContent="◔ Show as pie";
-    btn.setAttribute("aria-pressed","false");
-    wrap.appendChild(bar);wrap.appendChild(pie);wrap.appendChild(btn);
-    function toggle(){
-      var toPie=pie.hidden;
-      pie.hidden=!toPie;bar.hidden=toPie;
-      btn.textContent=toPie?"▬ Show as bar":"◔ Show as pie";
-      btn.setAttribute("aria-pressed",String(toPie));
+  "use strict";
+  var cv=document.getElementById("ch08-c"),cx=cv.getContext("2d");
+  var reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  // every colour below is re-read from the CSS tokens in syncTheme(); INK is an "r,g,b" triple
+  var BG="#0a0d12",ACC="#5ad1a0",UP="#5ad1a0",DOWN="#e06a8b",TOTAL="#d7e0e6",GRID="rgba(215,224,230,0.10)",AX="rgba(215,224,230,0.22)",TICK="rgba(255,255,255,0.85)",INK="215,224,230";
+  var root=document.documentElement;
+  function syncTheme(){ var cs=getComputedStyle(root),g=function(n){return cs.getPropertyValue(n).trim();};
+    BG=g("--ch08-bg"); ACC=g("--ch08-acc"); UP=g("--ch08-up"); DOWN=g("--ch08-down"); TOTAL=g("--ch08-total");
+    GRID=g("--ch08-grid"); AX=g("--ch08-ax"); TICK=g("--ch08-tick"); INK=g("--ch08-ink");
+    if(reduce&&W) draw(1); }
+  addEventListener("message",function(e){ var d=e.data; if(d&&d.type==="forever:theme"&&(d.theme==="light"||d.theme==="dark")){ root.setAttribute("data-theme",d.theme); syncTheme(); } });
+  // synthetic ledger: start, deltas, then an implicit total
+  var STEP=[ {l:"OPEN",v:42,t:0}, {l:"BUYS",v:26,t:1}, {l:"SELLS",v:-14,t:1}, {l:"RALLY",v:31,t:1}, {l:"DIP",v:-19,t:1}, {l:"VOLUME",v:17,t:1}, {l:"CLOSE",v:0,t:2} ];
+  var W=0,H=0,DPR=1,pad,plotL,plotR,plotT,plotB,bw,gap,maxV,run=true,raf=0,t0=0;
+
+  function size(){
+    DPR=Math.min(2,window.devicePixelRatio||1);
+    W=cv.clientWidth;H=cv.clientHeight;
+    cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+    cx.setTransform(DPR,0,0,DPR,0,0);
+    pad=Math.max(14,Math.min(W,H)*0.085);
+    plotL=pad*1.15;plotR=W-pad*0.7;plotT=Math.max(pad*0.95,H*0.30);plotB=H-Math.max(pad*1.25,72);
+    var n=STEP.length;gap=(plotR-plotL)/n*0.30;
+    bw=((plotR-plotL)-gap*(n-1))/n;
+    // compute cumulative extent
+    var c=0,mx=0;
+    for(var i=0;i<n;i++){
+      if(STEP[i].t===2){STEP[i].cum=c;STEP[i].base=0;STEP[i].top=c;}
+      else if(STEP[i].t===0){STEP[i].base=0;STEP[i].top=STEP[i].v;c=STEP[i].v;STEP[i].cum=c;}
+      else{var nc=c+STEP[i].v;STEP[i].base=Math.min(c,nc);STEP[i].top=Math.max(c,nc);c=nc;STEP[i].cum=c;}
+      if(STEP[i].top>mx)mx=STEP[i].top;
     }
-    btn.addEventListener("click",toggle);
-    [bar,pie].forEach(function(el){
-      el.tabIndex=0;
-      el.title="Click to switch view";
-      el.addEventListener("click",toggle);
-      el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}});
-    });
+    maxV=mx*1.12;
+  }
+  function yOf(v){return plotB-(v/maxV)*(plotB-plotT);}
+  function xOf(i){return plotL+i*(bw+gap);}
+
+  function easeOut(x){return 1-Math.pow(1-x,3);}
+
+  function frame(now){
+    if(!run)return;
+    if(!t0)t0=now;
+    var T=(now-t0)/1000;
+    draw(T);
+    raf=requestAnimationFrame(frame);
+  }
+
+  function draw(T){
+    var n=STEP.length;
+    cx.clearRect(0,0,W,H);
+    cx.fillStyle=BG;cx.fillRect(0,0,W,H);
+
+    // gridlines (4 horizontal)
+    cx.lineWidth=1;cx.strokeStyle=GRID;cx.beginPath();
+    for(var g=1;g<=4;g++){var gy=plotT+(plotB-plotT)*(g/5);cx.moveTo(plotL,gy);cx.lineTo(plotR,gy);}
+    cx.stroke();
+    // baseline axis
+    cx.strokeStyle=AX;cx.lineWidth=1.5;cx.beginPath();
+    cx.moveTo(plotL,plotB+0.5);cx.lineTo(plotR,plotB+0.5);
+    cx.moveTo(plotL-0.5,plotT);cx.lineTo(plotL-0.5,plotB);cx.stroke();
+
+    // staggered reveal: each bar gets a window
+    var perBar=0.62,stride=0.42,loop=stride*n+1.7;
+    var cycle=reduce?9e9:(T%loop);
+
+    var lblFont=Math.max(8,Math.min(16,Math.round(bw*0.34)));
+    cx.textAlign="center";
+
+    var prevConnX=0,prevConnY=0,havePrev=false;
+
+    for(var i=0;i<n;i++){
+      var s=STEP[i];
+      var local=reduce?1:Math.min(1,Math.max(0,(cycle-i*stride)/perBar));
+      var e=easeOut(local);
+      var x=xOf(i);
+      var yTop=yOf(s.top),yBase=yOf(s.base);
+      var fullH=yBase-yTop;
+      var col=s.t===0?TOTAL:(s.t===2?TOTAL:(s.v>=0?UP:DOWN));
+
+      // grown bar: rises from base toward top (or from top->base if it's a decrease for downward feel)
+      var growH=fullH*e;
+      var drawY,grows;
+      if(s.t===1 && s.v<0){ // decreases descend from the previous cumulative line
+        drawY=yTop; // top stays, height grows downward already from top
+      }
+      var by=yBase-growH;
+
+      // static soft plate behind bar (no per-frame shadow repaint; flat fill)
+      // bar fill
+      cx.fillStyle=col;
+      cx.globalAlpha=0.92;
+      rr(x,by,bw,growH,Math.min(3,bw*0.12));
+      cx.fill();
+      cx.globalAlpha=1;
+      // crisp top cap line
+      if(e>0.02){
+        cx.fillStyle=TICK;
+        cx.fillRect(x,by-0.5,bw,1.6);
+      }
+      // total bar gets a hatch baseline marker
+      if(s.t===2&&e>0.5){
+        cx.strokeStyle=ACC;cx.lineWidth=1;cx.globalAlpha=0.6;
+        cx.beginPath();
+        for(var hx=x;hx<x+bw;hx+=5){cx.moveTo(hx,yBase);cx.lineTo(hx-4,yBase+4);}
+        cx.stroke();cx.globalAlpha=1;
+      }
+
+      // connector from previous cumulative top to this bar's start
+      var connY=yOf(s.cum);
+      if(havePrev && local>0){
+        var cAlpha=Math.min(1,local*1.6)*0.55;
+        cx.strokeStyle="rgba("+INK+","+cAlpha.toFixed(3)+")";
+        cx.lineWidth=1.2;cx.setLineDash([4,3]);
+        cx.beginPath();cx.moveTo(prevConnX,prevConnY);cx.lineTo(x,prevConnY);cx.stroke();
+        cx.setLineDash([]);
+      }
+      prevConnX=x+bw;prevConnY=connY;havePrev=true;
+
+      // value chip on settled bars
+      if(local>0.85){
+        var va=Math.min(1,(local-0.85)/0.15);
+        cx.globalAlpha=va;
+        cx.fillStyle=col;
+        var vstr=(s.t===2?Math.round(s.cum):(s.t===0?"+"+s.v:(s.v>=0?"+"+s.v:String(s.v))));
+        cx.font="700 "+lblFont+"px ui-monospace,Menlo,monospace";
+        cx.fillText(vstr,x+bw/2,by-7);
+        cx.globalAlpha=1;
+      }
+      // category label
+      cx.fillStyle="rgba("+INK+",0.55)";
+      cx.font="600 "+lblFont+"px ui-monospace,Menlo,monospace";
+      cx.fillText(s.l,x+bw/2,plotB+lblFont+6);
+    }
+
+    // a travelling scan tick that traces the running total line (compositor-cheap single dot)
+    if(!reduce){
+      var head=Math.min(n-1,cycle/stride);
+      var hi=Math.floor(head),hf=head-hi;
+      if(hi<n){
+        var ax=xOf(hi)+bw+gap*hf, ay=yOf(STEP[Math.min(n-1,hi)].cum);
+        cx.fillStyle=ACC;cx.globalAlpha=0.9;
+        cx.beginPath();cx.arc(ax,ay,2.6,0,6.283);cx.fill();cx.globalAlpha=1;
+      }
+    }
+  }
+
+  function rr(x,y,w,h,r){
+    if(h<0){y+=h;h=-h;}
+    r=Math.min(r,w/2,h/2);
+    cx.beginPath();
+    cx.moveTo(x+r,y);
+    cx.arcTo(x+w,y,x+w,y+h,r);
+    cx.arcTo(x+w,y+h,x,y+h,r);
+    cx.arcTo(x,y+h,x,y,r);
+    cx.arcTo(x,y,x+w,y,r);
+    cx.closePath();
+  }
+
+  function start(){run=true;t0=0;raf=requestAnimationFrame(frame);}
+  function stop(){run=false;if(raf)cancelAnimationFrame(raf);raf=0;}
+
+  function init(){syncTheme();size();if(reduce){draw(1);return;}start();}
+
+  window.addEventListener("resize",function(){size();if(reduce)draw(1);},{passive:true});
+  document.addEventListener("visibilitychange",function(){
+    if(reduce)return;
+    if(document.hidden)stop();else if(!run)start();
   });
+
+  init();
+
+  // enter the site: click, tap, Enter or Space
+  var NEXT="stock-market.html",going=false;
+  function go(){ if(going)return; going=true;
+    if(reduce){location.href=NEXT;return;}
+    document.body.classList.add("leaving"); setTimeout(function(){location.href=NEXT;},450); }
+  document.getElementById("ms-enter").addEventListener("click",go);
+  document.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
+  // coming back with the Back button: undo the fade
+  addEventListener("pageshow",function(){ going=false; document.body.classList.remove("leaving"); });
 })();
 </script>
-
 </body>
 </html>
